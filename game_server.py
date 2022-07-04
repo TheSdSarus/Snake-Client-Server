@@ -5,24 +5,7 @@ import socket
 import pygame
 from threading import Thread
 
-game_over = False
-clock = pygame.time.Clock()
-
-IP = "127.0.0.1"
-PORT = 12000
-socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-socket.bind((IP, PORT))
-print('El servidor esta escuchando, se espera que un jugador se conecte {}'.format(socket.getsockname()))
-
-#Se espera
-messageBytes, address = socket.recvfrom(2048)
-execute_program = messageBytes.decode('utf-8')
-if(execute_program != 'conect'):
-    exit()
-
-
 class Snake():
-    
 
     def __init__(self, x=0, y=0):
         self.x = x
@@ -60,82 +43,102 @@ class Snake():
             return True
         else:    
             return False    
+class Food:
+    def __init__(self, x=round(random.randrange(0, 600 - 20) / 20.0) * 20.0, y=round(random.randrange(0, 600 - 20) / 20.0) * 20.0):
+        self.x = x
+        self.y = y
 
+    def setNewCoordinate(self):
+        self.x = round(random.randrange(0, 600 - 20) / 20.0) * 20.0 
+        self.y = round(random.randrange(0, 600 - 20) / 20.0) * 20.0
+        print("Hola")
+class Game:
+    def __init__(self, width=600, height=600):
+        self.width = width
+        self.height = height
+        self.clock = pygame.time.Clock()
+        self.IP = "127.0.0.1"
+        self.PORT = 12000
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket.bind((self.IP, self.PORT))
+        print("Se inicio el socket correctamente")
+        self.addressplayer = None
+        self.snake = Snake(200,200)
+        self.food = Food()
+        #self.foodx = round(random.randrange(0, 600 - 20) / 20.0) * 20.0
+        #self.foody = round(random.randrange(0, 600 - 20) / 20.0) * 20.0
+        self.game_over = False
 
+    def waitPlayer(self):
+        messageBytes, self.addressplayer = self.socket.recvfrom(2048)
+        execute_program = messageBytes.decode('utf-8')
+        if(execute_program != 'conect'):
+            exit()
 
-a = Snake(200,200)
-#b = Point(100,100)
+    def rungame(self):
+        self.socket.settimeout(0)
+        print("EMPEZARA EJECUTAR LOS THREAD")
+        t1 = Thread(target=self.task1)
+        t2 = Thread(target=self.task2)
+        t3 = Thread(target=self.task3)
 
-foodx = round(random.randrange(0, 600 - 20) / 20.0) * 20.0
-foody = round(random.randrange(0, 600 - 20) / 20.0) * 20.0
+        t1.start()
+        t2.start()
+        t3.start()
 
-game_over = False
+        t1.join()
+        t2.join()
+        t3.join()
+        print("CORRIO LOS THREAD")
 
+    def task1(self):
+        while True:
+            try:
+                messageBytes, self.addressplayer = self.socket.recvfrom(2048)
+                messageString = messageBytes.decode('utf-8')
+                print('Received from client {} : {}'.format(self.addressplayer, messageString))
+                if messageString == 'left':
+                    self.snake.updateValueChange(-20,0)
+                if messageString == 'right':
+                    self.snake.updateValueChange(20,0)
+                if messageString == 'up':
+                    self.snake.updateValueChange(0,-20)
+                if messageString == 'down':
+                    self.snake.updateValueChange(0,20)          
+                #messageString = messageString.split(", ")
+            except:
+                asd = 1+1
 
-socket.settimeout(0)
+    def task2(self):
+        while True:
 
-#Aca estaba iniciado el socket
+            self.snake.updatePosition()
 
-def task1():
-    while True:
-        try:
-            messageBytes, address = socket.recvfrom(2048)
-            messageString = messageBytes.decode('utf-8')
-            print('Received from client {} : {}'.format(address, messageString))
-            if messageString == 'left':
-                a.updateValueChange(-20,0)
-            if messageString == 'right':
-                a.updateValueChange(20,0)
-            if messageString == 'up':
-                a.updateValueChange(0,-20)
-            if messageString == 'down':
-                a.updateValueChange(0,20)          
-            #messageString = messageString.split(", ")
-        except:
-            asd = 1+1
-    print("Hola")
+            #pygame.draw.rect(dis, black, [b.x, b.y, 20, 20])
 
-def task2():
-    while not game_over:
-        if a.verify(600,600): #or b.verify(dis_width,dis_height):
-            game_over = True    
+            if self.snake.x == self.food.x and self.snake.y == self.food.y:
+                self.food.setNewCoordinate()
+                self.snake.snakeLength += 1
 
-        #b.updatePosition()
-        #x1 += x1_change
-        #y1 += y1_change
-
-        a.updatePosition()
-
-        #pygame.draw.rect(dis, black, [b.x, b.y, 20, 20])
-
-        if a.x == foodx and a.y == foody:
-            foodx = round(random.randrange(0, 600 - 20) / 20.0) * 20.0
-            foody = round(random.randrange(0, 600 - 20) / 20.0) * 20.0
-            a.snakeLength += 1
-
-        clock.tick(5)
-
-
-
-def task3():
-    while True:
-        result = str(foodx)+ "," + str(foody)
-
-        for i in a.snakeList:
-            result += "/" + str(i[0]) + "," + str(i[1])
-
-        socket.sendto(str(result).encode(), address) 
+            self.clock.tick(5)
     
-print("EMPEZARA EJECUTAR LOS THREAD")
+    def task3(self):
+        while True:
+            
+            result = str(self.food.x)+ "," + str(self.food.y)
 
-t1 = Thread(target=task1)
-t2 = Thread(target=task2)
-t3 = Thread(target=task3)
+            for i in self.snake.snakeList:
+                result += "/" + str(i[0]) + "," + str(i[1])
 
-t1.start()
-t2.start()
-t3.start()
+            self.socket.sendto(str(result).encode(), self.addressplayer)
+            time.sleep(0.01)            
 
-t1.join()
-t2.join()
-t3.join()
+
+    
+print("EMPEZARA EJECUTAR EL JUEGO")
+
+juego = Game()
+print("SE ESPERAN A LOS JUGADORES")
+juego.waitPlayer()
+print("SE CORRE EL JUEGO")
+juego.rungame()

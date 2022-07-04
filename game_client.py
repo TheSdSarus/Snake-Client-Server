@@ -34,21 +34,17 @@ socket.settimeout(0)
 def updateBoard(messageString): 
     dis.fill(white)
     aux = 0
-    print("entra al update board")
-    print(messageString)
 
     for x in messageString:
         coordenada = x.split(",")
         a = coordenada[0]
-        print("holii" + a)
         if aux == 0:
             pygame.draw.rect(dis, green, [int(float(coordenada[0])), int(float(coordenada[1])), 20, 20])
         else:
             pygame.draw.rect(dis, black, [int(coordenada[0]), int(coordenada[1]), 20, 20])
         aux = aux + 1
 
-    
-    print("------------")
+
 hola = ['0','1']
 
 dis.fill(white)
@@ -78,20 +74,11 @@ while True:
     try:
         messageBytes, address = socket.recvfrom(2048)
         messageString = messageBytes.decode('utf-8')
-        print('Received from server {} : {}'.format(address, messageString))
         messageString = messageString.split("/")
-        hola = messageString[0].split(",")
-        
-        #print("asd " + asd[0])
-
         updateBoard(messageString)
-        print("se actualizo")
         pygame.display.update()
     except Exception as inst:
         asd = 1+1
-        #print(type(inst))    # the exception instance
-        #print(inst.args)     # arguments stored in .args
-        #print(inst)  
 
 pygame.quit()
 quit()
