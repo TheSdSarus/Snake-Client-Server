@@ -3,7 +3,8 @@ import time
 import random
 import socket
 import pygame
- 
+from threading import Thread
+
 game_over = False
 clock = pygame.time.Clock()
 
@@ -75,51 +76,66 @@ socket.settimeout(0)
 
 #Aca estaba iniciado el socket
 
+def task1():
+    while True:
+        try:
+            messageBytes, address = socket.recvfrom(2048)
+            messageString = messageBytes.decode('utf-8')
+            print('Received from client {} : {}'.format(address, messageString))
+            if messageString == 'left':
+                a.updateValueChange(-20,0)
+            if messageString == 'right':
+                a.updateValueChange(20,0)
+            if messageString == 'up':
+                a.updateValueChange(0,-20)
+            if messageString == 'down':
+                a.updateValueChange(0,20)          
+            #messageString = messageString.split(", ")
+        except:
+            asd = 1+1
+    print("Hola")
 
-while not game_over:
+def task2():
+    while not game_over:
+        if a.verify(600,600): #or b.verify(dis_width,dis_height):
+            game_over = True    
 
-    try:
-        messageBytes, address = socket.recvfrom(2048)
-        messageString = messageBytes.decode('utf-8')
-        print('Received from client {} : {}'.format(address, messageString))
-        if messageString == 'left':
-            a.updateValueChange(-20,0)
-        if messageString == 'right':
-            a.updateValueChange(20,0)
-        if messageString == 'up':
-            a.updateValueChange(0,-20)
-        if messageString == 'down':
-            a.updateValueChange(0,20)          
-        #messageString = messageString.split(", ")
+        #b.updatePosition()
+        #x1 += x1_change
+        #y1 += y1_change
 
+        a.updatePosition()
 
+        #pygame.draw.rect(dis, black, [b.x, b.y, 20, 20])
 
-    except:
-        asd = 1+1
+        if a.x == foodx and a.y == foody:
+            foodx = round(random.randrange(0, 600 - 20) / 20.0) * 20.0
+            foody = round(random.randrange(0, 600 - 20) / 20.0) * 20.0
+            a.snakeLength += 1
 
+        clock.tick(5)
 
 
-    if a.verify(600,600): #or b.verify(dis_width,dis_height):
-        game_over = True    
 
-    #b.updatePosition()
-    #x1 += x1_change
-    #y1 += y1_change
+def task3():
+    while True:
+        result = str(foodx)+ "," + str(foody)
 
-    a.updatePosition()
+        for i in a.snakeList:
+            result += "/" + str(i[0]) + "," + str(i[1])
 
-    #pygame.draw.rect(dis, black, [b.x, b.y, 20, 20])
+        socket.sendto(str(result).encode(), address) 
+    
+print("EMPEZARA EJECUTAR LOS THREAD")
 
-    if a.x == foodx and a.y == foody:
-        foodx = round(random.randrange(0, 600 - 20) / 20.0) * 20.0
-        foody = round(random.randrange(0, 600 - 20) / 20.0) * 20.0
-        a.snakeLength += 1
+t1 = Thread(target=task1)
+t2 = Thread(target=task2)
+t3 = Thread(target=task3)
 
-    clock.tick(5)
+t1.start()
+t2.start()
+t3.start()
 
-    result = str(foodx)+ "," + str(foody)
-
-    for i in a.snakeList:
-        result += "/" + str(i[0]) + "," + str(i[1])
-
-    socket.sendto(str(result).encode(), address)
+t1.join()
+t2.join()
+t3.join()
